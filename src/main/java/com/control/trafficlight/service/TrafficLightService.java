@@ -11,12 +11,18 @@ public class TrafficLightService {
     private final Map<String, TrafficLight> trafficLights = new HashMap<>();
     private boolean isPaused = false;
     private final Map<String, List<TrafficLightState>> customSequences = new HashMap<>();
-    
+    private static final Map<String, List<String>> CONFLICTING_DIRECTIONS = Map.of(
+            "NORTH", List.of("SOUTH"),
+            "SOUTH", List.of("NORTH"),
+            "EAST", List.of("WEST"),
+            "WEST", List.of("EAST")
+    );
+
     public TrafficLightService() {
         // Initialize traffic lights for each direction
         initializeTrafficLights();
     }
-    
+
     private void initializeTrafficLights() {
         // Default duration for each state (in seconds)
         int redDuration = 30;
@@ -29,14 +35,56 @@ public class TrafficLightService {
         trafficLights.put("EAST", new TrafficLight("EAST", TrafficLightState.GREEN, greenDuration));
         trafficLights.put("WEST", new TrafficLight("WEST", TrafficLightState.GREEN, greenDuration));
     }
-    
+
+    private void validateNoConflictingGreens(String direction, TrafficLightState newState) {
+        if (newState == TrafficLightState.GREEN) {
+            List<String> conflictingDirs = CONFLICTING_DIRECTIONS.getOrDefault(direction, List.of());
+            for (String conflictDir : conflictingDirs) {
+                TrafficLight conflictLight = trafficLights.get(conflictDir);
+                if (conflictLight != null && conflictLight.getCurrentState() == TrafficLightState.GREEN) {
+                    throw new IllegalStateException(
+                            String.format("Cannot set %s to GREEN while %s is GREEN", direction, conflictDir)
+                    );
+                }
+            }
+        }
+    }
+
+    public void setLightState(String direction, TrafficLightState state) {
+        if (isPaused) {
+            throw new IllegalStateException("Cannot change state while system is paused");
+        }
+        direction = direction.toUpperCase();
+        validateNoConflictingGreens(direction, state);
+
+        TrafficLight light = trafficLights.get(direction);
+        if (light != null) {
+            light.setCurrentState(state);
+        }
+    }
+
+
     public void changeState(String direction) {
         TrafficLight light = trafficLights.get(direction.toUpperCase());
         if (light != null) {
+            TrafficLightState currentState = light.getCurrentState();
             light.changeState();
+            TrafficLightState newState = light.getCurrentState();
+
+            // If the new state is GREEN, validate no conflicts
+            if (newState == TrafficLightState.GREEN) {
+                try {
+                    validateNoConflictingGreens(direction.toUpperCase(), newState);
+                } catch (IllegalStateException e) {
+                    // Revert to previous state if conflict detected
+                    light.setCurrentState(currentState);
+                    throw e;
+                }
+            }
         }
     }
-    
+
+
     public TrafficLight getTrafficLight(String direction) {
         return trafficLights.get(direction.toUpperCase());
     }
@@ -92,14 +140,4 @@ public class TrafficLightService {
         return sequence.get(nextIndex);
     }
 
-    // Manually set a light to a specific state
-    public void setLightState(String direction, TrafficLightState state) {
-        if (isPaused) {
-            throw new IllegalStateException("Cannot change state while system is paused");
-        }
-        TrafficLight light = trafficLights.get(direction.toUpperCase());
-        if (light != null) {
-            light.setCurrentState(state);
-        }
-    }
 }
