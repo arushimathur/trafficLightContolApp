@@ -1,5 +1,6 @@
 package com.control.trafficlight.service;
 
+import com.control.trafficlight.model.LightStateRecord;
 import com.control.trafficlight.model.TrafficLight;
 import com.control.trafficlight.model.TrafficLightState;
 import org.springframework.stereotype.Service;
@@ -89,15 +90,22 @@ public class TrafficLightService {
         return trafficLights.get(direction.toUpperCase());
     }
     
-    public Map<String, TrafficLightState> getAllLightsStatus() {
-        Map<String, TrafficLightState> status = new HashMap<>();
-        trafficLights.forEach((direction, light) -> 
-            status.put(direction, light.getCurrentState())
+    public Map<String, Object> getAllLightsStatus() {
+        Map<String, Object> status = new HashMap<>();
+        trafficLights.forEach((direction, light) ->
+                {
+                    Map<String, Object> lightStatus = new HashMap<>();
+                    lightStatus.put("state", light.getCurrentState());
+                    lightStatus.put("durationInCurrentState", light.getCurrentStateDuration());
+                    status.put(direction, lightStatus);
+                }
         );
         return status;
     }
 
-    // Pause all light changes
+
+
+// Pause all light changes
     public void pauseOperation() {
         this.isPaused = true;
     }
@@ -139,5 +147,14 @@ public class TrafficLightService {
         int nextIndex = (currentIndex + 1) % sequence.size();
         return sequence.get(nextIndex);
     }
+
+    public List<LightStateRecord> getLightStateHistory(String direction) {
+        TrafficLight light = trafficLights.get(direction.toUpperCase());
+        if (light != null) {
+            return light.getStateHistory();
+        }
+        return List.of();
+    }
+
 
 }
