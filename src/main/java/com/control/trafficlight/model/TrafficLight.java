@@ -34,6 +34,13 @@ public class TrafficLight {
     public TrafficLightState getCurrentState() {
         return currentState;
     }
+    
+    public void setCurrentState(TrafficLightState state) {
+        if (state == null) {
+            throw new IllegalArgumentException("State cannot be null");
+        }
+        this.currentState = state;
+    }
 
     public int getDuration() {
         return duration;
