@@ -1,5 +1,6 @@
 package com.control.trafficlight.controller;
 
+import com.control.trafficlight.model.LightStateRecord;
 import com.control.trafficlight.model.TrafficLight;
 import com.control.trafficlight.model.TrafficLightState;
 import com.control.trafficlight.service.TrafficLightService;
@@ -9,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -112,5 +113,30 @@ public class TrafficLightController {
                 "lights", trafficLightService.getAllLightsStatus()
         );
         return ResponseEntity.ok(status);
+    }
+
+    // In TrafficLightController.java
+    @GetMapping("/{direction}/history")
+    public ResponseEntity<List<LightStateRecord>> getLightHistory(
+            @PathVariable String direction,
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        List<LightStateRecord> history = trafficLightService.getLightStateHistory(direction);
+        if (history.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(history.stream().limit(limit).collect(Collectors.toList()));
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<Map<String, List<LightStateRecord>>> getAllLightsHistory(
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        Map<String, List<LightStateRecord>> allHistory = new HashMap<>();
+        trafficLightService.getAllLightsStatus().keySet().forEach(direction -> {
+            allHistory.put(direction, trafficLightService.getLightStateHistory(direction)
+                    .stream()
+                    .limit(limit)
+                    .collect(Collectors.toList()));
+        });
+        return ResponseEntity.ok(allHistory);
     }
 }
