@@ -1,4 +1,4 @@
-package com.trafficlight.controller;
+package com.control.trafficlight.controller;
 
 import com.control.trafficlight.model.TrafficLight;
 import com.control.trafficlight.model.TrafficLightState;
