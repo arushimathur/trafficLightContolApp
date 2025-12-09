@@ -1,6 +1,0 @@
-com\control\trafficlight\model\TrafficLightState.class
-com\control\trafficlight\model\TrafficLight$1.class
-com\control\trafficlight\model\TrafficLight.class
-com\control\trafficlight\service\TrafficLightService.class
-com\control\trafficlight\controller\TrafficLightController.class
-com\control\trafficlight\TrafficLightControlApplication.class
