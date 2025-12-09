@@ -7,7 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/traffic-lights")
@@ -22,8 +25,12 @@ public class TrafficLightController {
 
     // Get status of all traffic lights
     @GetMapping
-    public ResponseEntity<Map<String, TrafficLightState>> getAllLights() {
-        return ResponseEntity.ok(trafficLightService.getAllLightsStatus());
+    public ResponseEntity<Map<String, Object>> getAllLights() {
+        Map<String, Object> response = Map.of(
+                "isPaused", trafficLightService.isPaused(),
+                "lights", trafficLightService.getAllLightsStatus()
+        );
+        return ResponseEntity.ok(response);
     }
 
     // Get status of a specific traffic light
@@ -49,5 +56,61 @@ public class TrafficLightController {
     public ResponseEntity<String> emergencyStop() {
         // Implementation would be added to set all lights to RED
         return ResponseEntity.ok("EMERGENCY: All traffic lights set to RED");
+    }
+
+    @PostMapping("/pause")
+    public ResponseEntity<String> pauseOperation() {
+        trafficLightService.pauseOperation();
+        return ResponseEntity.ok("Traffic light operation paused");
+    }
+
+    @PostMapping("/resume")
+    public ResponseEntity<String> resumeOperation() {
+        trafficLightService.resumeOperation();
+        return ResponseEntity.ok("Traffic light operation resumed");
+    }
+
+    @PostMapping("/{direction}/set-state")
+    public ResponseEntity<?> setLightState(
+            @PathVariable String direction,
+            @RequestParam String state) {
+        try {
+            TrafficLightState newState = TrafficLightState.valueOf(state.toUpperCase());
+            trafficLightService.setLightState(direction, newState);
+            return ResponseEntity.ok("Light at " + direction + " set to " + newState);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid state: " + state + ". Must be one of: " +
+                    Arrays.toString(TrafficLightState.values()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{direction}/set-sequence")
+    public ResponseEntity<?> setLightSequence(
+            @PathVariable String direction,
+            @RequestParam String sequence) {
+        try {
+            List<TrafficLightState> states = Arrays.stream(sequence.split(","))
+                    .map(String::trim)
+                    .map(String::toUpperCase)
+                    .map(TrafficLightState::valueOf)
+                    .collect(Collectors.toList());
+
+            trafficLightService.setLightSequence(direction, states);
+            return ResponseEntity.ok("Custom sequence set for " + direction + ": " + states);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid sequence. Use comma-separated values of: " +
+                    Arrays.toString(TrafficLightState.values()));
+        }
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Object>> getSystemStatus() {
+        Map<String, Object> status = Map.of(
+                "isPaused", trafficLightService.isPaused(),
+                "lights", trafficLightService.getAllLightsStatus()
+        );
+        return ResponseEntity.ok(status);
     }
 }
